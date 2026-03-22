@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2013-2015 Marko Zec, University of Zagreb
+# Copyright (c) 2013 - 2016 Marko Zec
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -21,8 +21,6 @@
 # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
-#
-# $Id$
 #
 
 # Default load offset - bootloader is always at 0x00000000
@@ -106,6 +104,10 @@ else ifeq (${ARCH},mips)
 		MK_CFLAGS += -G 32768
 	endif
 
+	# Strip unneeded sections
+	STRIPFLAGS += -S -R .reginfo -R .mdebug.abi32 -R .pdr
+	STRIPFLAGS += -R .comment -R .gnu.attributes
+
 	# Disregard metadata sections which objcopy may misinterpret
 	OBJFLAGS = -R .rel.dyn -R .MIPS.abiflags
 
@@ -187,6 +189,8 @@ AS = ${TOOLPREFIX}-gcc ${MK_CFLAGS} ${MK_ASFLAGS} ${MK_INCLUDES}
 LD = ${TOOLPREFIX}-ld ${MK_LDFLAGS}
 AR = ${TOOLPREFIX}-ar ${MK_ARFLAGS}
 OBJCOPY = ${TOOLPREFIX}-objcopy
+STRIP = ${TOOLPREFIX}-strip
+
 ifeq ($(shell uname -s), FreeBSD)
 	ISA_CHECK = ${BASE_DIR}tools/isa_check.tcl
 else
@@ -244,6 +248,7 @@ ${BIN}: ${PROG} Makefile
 
 ${PROG}: ${OBJS} Makefile
 	${LD} -o ${PROG} ${OBJS} ${MK_LIBS}
+	${STRIP} ${STRIPFLAGS} ${PROG}
 
 ${LIB}: ${OBJS} Makefile
 	${AR} ${LIBDIR}/lib${LIB}.a ${OBJS}
