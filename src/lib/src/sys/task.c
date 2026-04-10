@@ -134,3 +134,22 @@ task_alloc(void)
 
 	return(ts);
 }
+
+/* XXX exit() works only on CPU #0 - fixme! */
+_Noreturn void
+exit(int x __unused)
+{
+
+	while (1) {
+		__asm __volatile (
+#ifdef __mips__
+			".set noreorder\n"
+			"jr $0\n"
+			"mtc0 $0, $12\n" /* Mask and disable all interrupts */
+			".set reorder"
+#else /* riscv */
+			"jr zero\n"
+#endif
+		);
+	}
+}

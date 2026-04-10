@@ -93,6 +93,7 @@ void free(void *ptr);
 
 #define	alloca(sz) __builtin_alloca(sz)
 
+_Noreturn void exit(int);
 int atexit(void (*)(void));
 
 #define	EXIT_FAILURE	1
@@ -103,24 +104,5 @@ int atexit(void (*)(void));
 int	clearenv(void);
 int	putenv(char *);
 char	*getenv(const char *);
-
-/* XXX exit() works only on CPU #0 - fixme! */
-_Noreturn inline void
-exit(int x __unused)
-{
-
-	while (1) {
-		__asm __volatile (
-#ifdef __mips__
-			".set noreorder\n"
-			"jr $0\n"
-			"mtc0 $0, $12\n" /* Mask and disable all interrupts */
-			".set reorder"
-#else /* riscv */
-			"jr zero\n"
-#endif
-		);
-	}
-}
 
 #endif /* !_STDLIB_H_ */
