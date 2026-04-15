@@ -26,8 +26,10 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>
+
 #include <dev/io.h>
 
+#include <sys/elf.h>
 
 static const char *bootfiles[] = {
 	"/boot.bin",
@@ -48,6 +50,7 @@ load_bin(const char *fname, int verbose)
 	int fd;
 	int i;
 	char *cp;
+	uint32_t entry, tsiz, dsiz;
 	char *start, *bss, *end;
 #ifdef __mips__
 	int16_t *shortp = (void *) hdrbuf;
@@ -64,6 +67,23 @@ load_bin(const char *fname, int verbose)
 		return (NULL);
 	}
 
+	if (elfinfo(fd, &entry, &tsiz, &dsiz, NULL) == 0) {
+		start = (void *) entry;
+		if (verbose)
+			printf("ELF text @ %p,0x%x data @ %p,0x%x",
+			    start, tsiz, &start[tsiz], dsiz);
+		if (elfload(fd, start, tsiz, &start[tsiz], dsiz) == 0) {
+			if (verbose)
+				printf(" OK\n");
+			close(fd);
+			return (start);
+		}
+		close(fd);
+		printf(" invalid ELF file\n");
+		return (NULL);
+	}
+
+	lseek(fd, 0, SEEK_SET);
 	i = read(fd, hdrbuf, sizeof(hdrbuf));
 	close(fd);
 	if (i != sizeof(hdrbuf)) {
@@ -127,7 +147,7 @@ main(void)
 	if (*((int *) loadaddr) == LOAD_COOKIE)
 		loadaddr = load_bin(&loadaddr[4], 0);
 	else {
-		printf("f32c FAT bootloader v 0.5 "
+		printf("f32c FAT bootloader v 0.6 "
 #ifdef __mips__
 #if _BYTE_ORDER == _BIG_ENDIAN
 		    "(mips/be)"
