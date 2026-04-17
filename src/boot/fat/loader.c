@@ -67,7 +67,7 @@ load_bin(const char *fname, int verbose)
 		return (NULL);
 	}
 
-	if (elfinfo(fd, &entry, &tsiz, &dsiz, NULL) == 0) {
+	if (elfinfo(fd, &entry, &tsiz, &dsiz) == 0) {
 		start = (void *) entry;
 		if (verbose)
 			printf("ELF text @ %p,0x%x data @ %p,0x%x",
