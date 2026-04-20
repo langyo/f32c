@@ -1,6 +1,6 @@
 
-# Bootloader uses a non-default loadaddr
-LOADADDR = 0x81FF0000
+# Bootloader uses a non-default loadaddr, at the top of 64 MB SDRAM range
+LOADADDR = 0x83FF0000
 
 # No optional instructions in the loader
 MIN = true
