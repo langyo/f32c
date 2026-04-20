@@ -29,6 +29,7 @@ use ieee.std_logic_unsigned.all;
 
 entity spi is
     generic (
+	C_clk_div: std_logic_vector := x"80";
 	C_fixed_speed: boolean := true
     );
     port (
@@ -64,7 +65,7 @@ end spi;
 architecture x of spi is
     signal R_bit_cnt: std_logic_vector(3 downto 0);
     signal R_spi_byte_in, R_spi_byte_out: std_logic_vector(7 downto 0);
-    signal R_clk_div: std_logic_vector(7 downto 0) := x"80";
+    signal R_clk_div: std_logic_vector(7 downto 0) := C_clk_div;
     signal R_clk_acc: std_logic_vector(7 downto 0);
     signal R_spi_cen: std_logic_vector(3 downto 0) := (others => '1');
     signal R_spi_cen_next: std_logic_vector(3 downto 0) := "1110";
