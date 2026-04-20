@@ -1,6 +1,6 @@
 
 # Bootloader uses a non-default loadaddr
-LOADADDR = 0x8FFF0000
+LOADADDR = 0x81FF0000
 
 # No optional instructions in the loader
 MIN = true
