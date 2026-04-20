@@ -79,7 +79,8 @@ malloc_init()
 			i = -2;
 		}
 	}
-	ram_top = (uint32_t) &heap[off] - (((uint32_t) heap) & ~(1 <<31));
+	i = ~((1 << 31) | off * sizeof(probe));
+	ram_top = (uint32_t) &heap[off] - (((uint32_t) heap) & i);
 
 	/* Reserve stack space depending on memory mapping */
 	if ((int) ram_top < 0)
