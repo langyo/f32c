@@ -1299,6 +1299,7 @@ flash_h(int argc, char **argv)
 	struct diskio_inst di;
 #define	FLASH_SECLEN 4096
 	uint8_t buf[FLASH_SECLEN];
+	LBA_t *sec = (void *) buf;
 	uint8_t prev_line[16];
 	uint8_t *prev_buf;
 	int skipping = 0;
@@ -1369,6 +1370,29 @@ flash_h(int argc, char **argv)
 		}
 		printf("\nWrote %d bytes\n", len);
 		return;
+	case 'e':
+		if (argc < 4)
+			break;
+		start = strtol(argv[2], NULL, 0);
+		len = strtol(argv[3], NULL, 0);
+		if (start < 0 || len <= 0)
+			break;
+		if ((start & (FLASH_SECLEN - 1)) != 0) {
+			printf("%08x (%d) is not sector aligned\n",
+			    start, start);
+			return;
+		}
+		if ((len & (FLASH_SECLEN - 1)) != 0) {
+			printf("%08x (%d) is not sector aligned\n",
+			    len, len);
+			return;
+		}
+		sec[0] = start / FLASH_SECLEN;
+		sec[1] = (start + len) / FLASH_SECLEN - 1;
+		printf("Erasing...");
+		di.d_sw->ioctl(&di, CTRL_TRIM, buf);
+		printf("\nDone\n");
+		return;
 	case 'd':
 	case 'x':
 		if (argc < 2)
@@ -1395,6 +1419,10 @@ flash_h(int argc, char **argv)
 				if (!skipping) {
 					printf("*\n");
 					lno++;
+				} else if (interrupt || sio_getchar(0) == 27) {
+					/* CTRL + C or ESC ? */
+					printf("^C - interrupted!\n");
+					break;
 				}
 				skipping = 1;
 			}
