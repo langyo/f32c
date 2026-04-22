@@ -33,6 +33,13 @@
  * 2) set return address
  * 3) invalidated caches
  */
+
+	.section .data
+	.globl environ
+	.type environ,@object
+environ:
+	.word 0
+
 	.section .init
 	.globl _start
 	.type _start,@function
@@ -59,6 +66,7 @@ bss_bzero_loop:
 bss_bzero_enter:
 	bne	s0, s1, bss_bzero_loop
 
+	/* Call initializers / constructors */
 	la	s0, __init_array_start
 	la	s1, __init_array_end
 	move	s2, ra
@@ -70,5 +78,13 @@ ctor_loop:
 	jalr	a0
 ctor_loop_enter:
 	bne	s0, s1,	ctor_loop
+
+	/* Set argc, argv, environ */
+	lw	a0, (sp)	/* argc */
+	lw	a1, 4(sp)	/* argv */
+	lw	a2, 8(sp)	/* envp, not really standard */
+	la	s0, environ
+	sw	a2, (s0)
+
 	move	ra, s2
 	j	main
