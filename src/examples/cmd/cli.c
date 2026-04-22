@@ -31,6 +31,8 @@
 #define MAXARGS	16
 #define	MAXHIST 32
 
+#define	FLASH_SECLEN 4096
+
 static char *histbuf[MAXHIST];
 static uint32_t	curhist;
 static int interrupt;
@@ -536,19 +538,19 @@ ls_h(int argc, char **argv)
 static void
 cd_h(int argc, char **argv)
 {
-	int res;
 	char path[128];
 
-	res = chdir(argv[1]);
-	if (res)
+	if (argc == 2 && chdir(argv[1]) != 0) {
 		printf("Error: %d\n", errno);
+		return;
+	}
 	getcwd(path, 128);
 	printf("%s\n", path);
 }
 
 
 static void
-pwd_h(int argc, char **argv)
+pwd_h(int argc __unused, char **argv)
 {
 
 	getcwd(argv[0], 128);
@@ -559,32 +561,38 @@ pwd_h(int argc, char **argv)
 static void
 rm_h(int argc, char **argv)
 {
-	int res;
+	int i;
 
-	res = unlink(argv[1]);
-	if (res)
-		printf("Error: %d\n", errno);
+	for (i = 1; i < argc; i++)
+		if (unlink(argv[i]) != 0) {
+			printf("Error: %d\n", errno);
+			return;
+		}
 }
 
 
 static void
 rmdir_h(int argc, char **argv)
 {
-	int res;
+	int i;
 
-	res = rmdir(argv[1]);
-	if (res)
-		printf("Error: %d\n", errno);
+	for (i = 1; i < argc; i++)
+		if (rmdir(argv[i]) != 0) {
+			printf("Error: %d\n", errno);
+			return;
+		}
 }
 
 static void
 mkdir_h(int argc, char **argv)
 {
-	int res;
+	int i;
 
-	res = mkdir(argv[1], 0777);
-	if (res)
-		printf("Error: %d\n", errno);
+	for (i = 1; i < argc; i++)
+		if (mkdir(argv[i], 0777) != 0) {
+			printf("Error: %d\n", errno);
+			return;
+		}
 }
 
 
@@ -592,14 +600,31 @@ mkdir_h(int argc, char **argv)
 static void
 mkfs_h(int argc, char **argv)
 {
-	int res;
+	int res, start = 0, len = 0;
 
 	if (argc < 2 || argv[1][1] != ':') {
 		printf("Invalid arguments\n");
 		return;
 	}
-
-	res = mkfs(argv[1], 0x100000, 0x100000);
+	if (argc == 4) {
+		start = strtol(argv[2], NULL, 0);
+		len = strtol(argv[3], NULL, 0);
+		if (start < 0 || len <= 0) {
+			printf("Invalid arguments\n");
+			return;
+		}
+		if ((start & (FLASH_SECLEN - 1)) != 0) {
+			printf("%08x (%d) is not sector aligned\n",
+			    start, start);
+			return;
+		}
+		if ((len & (FLASH_SECLEN - 1)) != 0) {
+			printf("%08x (%d) is not sector aligned\n",
+			    len, len);
+			return;
+		}
+	}
+	res = mkfs(argv[1], start, len);
 	if (res != FR_OK)
 		printf("Error: %d\n", res);
 }
@@ -1006,7 +1031,7 @@ chargen_h(int argc, char **argv)
 		lim = atoi(argv[1]);
 
 	for (i = sprintf(buf, "            Kbytes:"), c = ' ';
-	    i < sizeof(buf);) {
+	    i < (int) sizeof(buf);) {
 		buf[i++] = c++;
 		if (c == 127)
 			c = ' ';
@@ -1044,7 +1069,7 @@ chargen_h(int argc, char **argv)
 
 
 static void
-history_h(int argc, char **argv)
+history_h(int argc __unused, char **argv __unused)
 {
 	int i;
 
@@ -1057,7 +1082,7 @@ history_h(int argc, char **argv)
 
 
 static void
-cls_h(int argc, char **argv)
+cls_h(int argc __unused, char **argv __unused)
 {
 
 	printf("\n\033[2J\033[H");
@@ -1089,7 +1114,7 @@ date_h(int argc, char **argv)
 
 
 static void
-exit_h(int argc, char **argv)
+exit_h(int argc __unused, char **argv __unused)
 {
 
 	do_exit = 1;
@@ -1244,7 +1269,7 @@ srec_h(int argc, char **argv)
 
 
 static void
-df_h(int argc, char **argv)
+df_h(int argc __unused, char **argv __unused)
 {
 	int i, mounts;
 	struct statfs *buf;
@@ -1297,7 +1322,6 @@ flash_h(int argc, char **argv)
 {
 	int fd, start, len, res, lno = 0;
 	struct diskio_inst di;
-#define	FLASH_SECLEN 4096
 	uint8_t buf[FLASH_SECLEN];
 	LBA_t *sec = (void *) buf;
 	uint8_t prev_line[16];
@@ -1489,7 +1513,7 @@ const struct cmdswitch {
 
 
 static void
-help_h(int argc, char **argv)
+help_h(int argc __unused, char **argv __unused)
 {
 	int i, j;
 	const char *tp;
@@ -1507,7 +1531,7 @@ help_h(int argc, char **argv)
 
 
 void
-sig_h(int sig)
+sig_h(int sig __unused)
 {
 
 	//printf("%s() %d: signal %d\n", __FUNCTION__, __LINE__, sig);
@@ -1524,9 +1548,6 @@ cli(void)
 	char *lcp;
 
 	set_term();
-
-	/* XXX automount fatfs */
-	getcwd(line, 128);
 
 	signal(SIGHUP, sig_h);
 	signal(SIGINT, sig_h);
