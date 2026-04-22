@@ -38,5 +38,5 @@
 
 _start:
 	move	ra, zero
-	li	sp, 0x80100000
+	li	sp, 0x84000000
 	j	main
