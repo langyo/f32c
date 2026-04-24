@@ -30,17 +30,13 @@
 #include <dev/io.h>
 
 #include <sys/elf.h>
+#include <sys/exec.h>
 
 static const char *bootfiles[] = {
 	"/boot.bin",
 	"/boot/cmd.bin",
 	NULL
 };
-
-
-#define	RAM_BASE	0x80000000
-
-#define LOAD_COOKIE	0x10adc0de
 
 
 static char *
@@ -142,10 +138,11 @@ void
 main(void)
 {
 	int i;
-	char *loadaddr = (void *) RAM_BASE;
+	struct f32c_execinfo *f32c_eip = (void *) F32C_EXECINFO_ADDR;
+	void *loadaddr;
 
-	if (*((int *) loadaddr) == LOAD_COOKIE)
-		loadaddr = load_bin(&loadaddr[4], 0);
+	if (f32c_eip->cookie == F32C_EXECINFO_COOKIE)
+		loadaddr = load_bin(f32c_eip->argv[0], 0);
 	else {
 		printf("f32c FAT bootloader v 0.6 "
 #ifdef __mips__
@@ -165,18 +162,18 @@ main(void)
 		loadaddr = load_bin(bootfiles[i], 1);
 
 	if (loadaddr == NULL) {
-		*((int *) RAM_BASE) = 0;
+		f32c_eip->cookie = 0;
 		printf("Exiting\n");
 		return;
 	}
 
 	/* Invalidate I-cache */
 #ifdef __mips__
-	for (i = 9; i < 32768; i += 4) {
+	for (i = 0x80000000; i < 0x80010000; i += 4) {
 		__asm __volatile__(
 			"cache 0, 0(%0)"
 			: 
-			: "r" (RAM_BASE+i)
+			: "r" (i)
 		);
 	}
 #else /* riscv */

@@ -23,6 +23,8 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/exec.h>
+
 #include <dev/io.h>
 #include <dev/spi.h>
 
@@ -32,8 +34,6 @@
 
 #define	FLASH_ADDR_INC	0x00010000
 #define	FLASH_ADDR_LIM	0x00800000
-
-#define	RAM_START	0x80000000
 
 
 void sio_boot(void);
@@ -237,7 +237,7 @@ main(void)
 	uint8_t *cp = buf;
 	int len, i, c, addr;
 	char *start, *end;
-	uint32_t *cookiep = (void *) RAM_START;
+	struct f32c_execinfo *f32c_eip = (void *) F32C_EXECINFO_ADDR;
 	int verbose_boot = 1 << 21;
 #ifdef __mips__
 	int16_t *shortp = (void *) buf;
@@ -249,9 +249,8 @@ main(void)
 	OUTW(IO_CPU_RESET, ~1);
 
 	/* Check whether there are parameters for the loader at RAM_START */
-	if (*cookiep == 0xf32cbeef)
+	if (f32c_eip->cookie == F32C_EXECINFO_COOKIE && f32c_eip->tries++ == 0)
 		verbose_boot = 0;
-	*cookiep = 0;
 
 	for (addr = 0; addr < FLASH_ADDR_LIM; addr += FLASH_ADDR_INC) {
 		if (verbose_boot)
