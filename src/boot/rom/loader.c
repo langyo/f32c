@@ -336,6 +336,7 @@ main(void)
 	}
 
 	if (i > 0 || f32c_eip->cookie == F32C_EXECINFO_NOBOOT) {
+		f32c_eip->cookie = 0;
 		sio_boot();
 		cp = sio_load_binary();
 	}
