@@ -28,16 +28,26 @@
 #include <dev/io.h>
 #include <dev/spi.h>
 
-#define	IO_SIO_DATA	(IO_SIO_0 + 0x0)
-#define	IO_SIO_STATUS	(IO_SIO_0 + 0x4)
-#define	IO_SIO_BAUD	(IO_SIO_0 + 0x8)
+
+void sio_boot(void);
 
 #define	FLASH_ADDR_INC	0x00010000
 #define	FLASH_ADDR_LIM	0x00800000
 
+#define	IO_SIO_DATA	(IO_SIO_0 + 0x0)
+#define	IO_SIO_STATUS	(IO_SIO_0 + 0x4)
+#define	IO_SIO_BAUD	(IO_SIO_0 + 0x8)
 
-void sio_boot(void);
+void
+flash_byte(int out)
+{
+	uint32_t in;
 
+	SB(out, SPI_DATA, IO_SPI_FLASH);
+	do {
+		LB(in, SPI_CTRL1, IO_SPI_FLASH);
+	} while ((in & 1) == 0);
+}
 
 static void
 flash_read_block(uint8_t *buf, uint32_t addr, uint32_t len)
@@ -45,11 +55,11 @@ flash_read_block(uint8_t *buf, uint32_t addr, uint32_t len)
 
 	spi_slave_select(IO_SPI_FLASH, 0);
 	spi_start_transaction(IO_SPI_FLASH);
-	spi_byte(IO_SPI_FLASH, 0x0b); /* High-speed read */
-	spi_byte(IO_SPI_FLASH, addr >> 16);
-	spi_byte(IO_SPI_FLASH, addr >> 8);
-	spi_byte(IO_SPI_FLASH, addr);
-	spi_byte(IO_SPI_FLASH, 0xff); /* dummy byte, ignored */
+	flash_byte(0x0b); /* High-speed read */
+	flash_byte(addr >> 16);
+	flash_byte(addr >> 8);
+	flash_byte(addr);
+	flash_byte(0xff); /* dummy byte, ignored */
 	spi_block_in(IO_SPI_FLASH, buf, len);
 }
 
@@ -175,6 +185,8 @@ sio_load_binary(void)
 				OUTB(IO_SIO_BAUD, 15);
 			else if (base == 1000000)
 				OUTB(IO_SIO_BAUD, 13);
+			else if (base == 921600)
+				OUTB(IO_SIO_BAUD, 12);
 			else
 				OUTB(IO_SIO_BAUD, 9); // 115200
 			break;
@@ -260,14 +272,18 @@ main(void)
 			continue;
 		puts("\nFAT partition found at 0x");
 		phex32(addr);
-		flash_read_block(buf, addr + 512, 32);
-		if (is_f32c_exec(cp)) {
-			addr += 512;
-			break;
-		}
+
+		/* Check for boot code in front of the FAT partition */
 		flash_read_block(buf, addr - FLASH_ADDR_INC, 32);
 		if (addr > 0 && is_f32c_exec(cp)) {
 			addr -= FLASH_ADDR_INC;
+			break;
+		}
+
+		/* Legacy: check for boot code inside the FAT partition */
+		flash_read_block(buf, addr + 512, 32);
+		if (is_f32c_exec(cp)) {
+			addr += 512;
 			break;
 		}
 	}
@@ -314,15 +330,20 @@ main(void)
 		INB(c, IO_SIO_STATUS);
 		if (c & SIO_RX_FULL) {
 			INB(c, IO_SIO_DATA);
-			if (c == ' ') {
-				sio_boot();
-				cp = sio_load_binary();
+			if (c == ' ')
 				break;
-			}
 		}
+	}
+
+	if (i > 0 || f32c_eip->cookie == F32C_EXECINFO_NOBOOT) {
+		sio_boot();
+		cp = sio_load_binary();
 	}
 	
 boot:
+	/* Turn off LEDs */
+	OUTB(IO_LED, 0);
+
 #ifdef __mips__
 	__asm __volatile__(
 		".set noreorder;"
