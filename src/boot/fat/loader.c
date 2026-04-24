@@ -139,7 +139,7 @@ main(void)
 {
 	int i;
 	struct f32c_execinfo *f32c_eip = (void *) F32C_EXECINFO_ADDR;
-	void *loadaddr;
+	void *loadaddr = NULL;
 
 	if (f32c_eip->cookie == F32C_EXECINFO_COOKIE)
 		loadaddr = load_bin(f32c_eip->argv[0], 0);
@@ -155,14 +155,13 @@ main(void)
 		    "(riscv)"
 #endif
 		    " (built " __DATE__ ")\n");
-		loadaddr = NULL;
 	}
 
 	for (i = 0; loadaddr == NULL && bootfiles[i] != NULL; i++)
 		loadaddr = load_bin(bootfiles[i], 1);
 
 	if (loadaddr == NULL) {
-		f32c_eip->cookie = 0;
+		f32c_eip->cookie = F32C_EXECINFO_NOBOOT;
 		printf("Exiting\n");
 		return;
 	}
