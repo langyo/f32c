@@ -25,6 +25,8 @@
 
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <dev/io.h>
@@ -140,10 +142,27 @@ main(void)
 	int i;
 	struct f32c_execinfo *f32c_eip = (void *) F32C_EXECINFO_ADDR;
 	void *loadaddr = NULL;
+	int argc = 0;
+	char **argv = NULL;
+	char **envp = NULL;
 
-	if (f32c_eip->cookie == F32C_EXECINFO_COOKIE)
-		loadaddr = load_bin(f32c_eip->argv[0], 0);
-	else {
+	if (f32c_eip->cookie == F32C_EXECINFO_COOKIE) {
+		/* XXX todo: sanity check f32c_eip, csum */
+		argc = f32c_eip->argc;
+
+		/* Allocate space for argv / envp / strings at local stack */
+		argv = alloca(f32c_eip->size);
+		envp = &argv[argc];
+
+		/* Safely move argv / envp / strings to local stack */
+		memmove(argv, f32c_eip->argv, f32c_eip->size);
+
+		/* Adjust argv / envp pointer addresses */
+		for (i = 0; argv[i] != NULL; i++)
+			argv[i] += (argv - f32c_eip->argv) * sizeof(char *);
+
+		loadaddr = load_bin(argv[0], 0);
+	} else {
 		printf("f32c FAT bootloader v 0.6 "
 #ifdef __mips__
 #if _BYTE_ORDER == _BIG_ENDIAN
@@ -186,29 +205,20 @@ main(void)
 	OUTW(IO_PCM_FREQ, 0);	/* stop PCM DMA */
 	OUTW(IO_PCM_VOLUME, 0);	/* mute PCM DAC output */
 
+	__asm __volatile__(
 #ifdef __mips__
-	__asm __volatile__(
-		".set noreorder;"
-		"lui $4, 0x8000;"	/* stack mask */
-		"lui $5, 0x1000;"	/* top of the initial stack */
-		"and $29, %0, $4;"	/* clear low bits of the stack */
-		"move $31, $0;"		/* return to ROM loader when done */
-		"jr %0;"
-		"or $29, $29, $5;"	/* set the stack pointer */
-		".set reorder;"
-		: 
-		: "r" (loadaddr)
-	);
+		"move $4, %0;"	/* a0 */
+		"move $5, %1;"	/* a1 */
+		"move $6, %2;"	/* a2 */
+		"move $29, %1;"	/* sp */
 #else /* riscv */
-	__asm __volatile__(
-		"lui s0, 0x80000;"	/* stack mask */
-		"lui s1, 0x10000;"	/* top of the initial stack */
-		"and sp, %0, s0;"	/* clr low bits of the stack */
-		"or sp, sp, s1;"	/* set stack */
-		"mv ra, zero;"
-		"jr %0;"
-		:
-		: "r" (loadaddr)
-	);
+		"move a0, %0;"
+		"move a1, %1;"
+		"move a2, %2;"
+		"move sp, %1;"
 #endif
+		"jr %3;"
+		:
+		: "r" (argc), "r" (argv), "r" (envp), "r" (loadaddr)
+	);
 }
