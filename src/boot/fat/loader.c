@@ -141,7 +141,7 @@ main(void)
 {
 	int i;
 	struct f32c_execinfo *f32c_eip = (void *) F32C_EXECINFO_ADDR;
-	void *loadaddr = NULL;
+	void *sp, *loadaddr = NULL;
 	int argc = 0;
 	char **argv = NULL;
 	char **envp = NULL;
@@ -205,20 +205,25 @@ main(void)
 	OUTW(IO_PCM_FREQ, 0);	/* stop PCM DMA */
 	OUTW(IO_PCM_VOLUME, 0);	/* mute PCM DAC output */
 
+	if (argv != NULL)
+		sp = argv;
+	else
+		sp = (void *) 0x84000000;
+
 	__asm __volatile__(
 #ifdef __mips__
 		"move $4, %0;"	/* a0 */
 		"move $5, %1;"	/* a1 */
 		"move $6, %2;"	/* a2 */
-		"move $29, %1;"	/* sp */
+		"move $29, %3;"	/* sp */
 #else /* riscv */
 		"move a0, %0;"
 		"move a1, %1;"
 		"move a2, %2;"
-		"move sp, %1;"
+		"move sp, %3;"
 #endif
-		"jr %3;"
+		"jr %4;"
 		:
-		: "r" (argc), "r" (argv), "r" (envp), "r" (loadaddr)
+		: "r" (argc), "r" (argv), "r" (envp), "r" (sp), "r" (loadaddr)
 	);
 }
