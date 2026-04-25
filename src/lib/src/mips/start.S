@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2013-2024 Marko Zec
+ * Copyright (c) 2013 - 2026 Marko Zec
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,6 +57,12 @@ _start:
 	la	gp, _gp	
 	la	k1, thread0
 
+	/* Save argc, argv, envp, ra */
+	move	s4, a0
+	move	s5, a1
+	move	s6, a2
+	move	s7, ra
+
 	/* The loader doesn't bzero the BSS, so we must do it here. */
 	.set noreorder
 bss_bzero:
@@ -68,7 +74,6 @@ bss_bzero:
 	/* Call initializers / constructors */
 	la	s0, __init_array_start
 	la	s1, _fdata
-	move	s2, ra
 	b	ctor_loop_enter
 
 	.set noreorder
@@ -79,13 +84,13 @@ ctor_loop_enter:
 	bne	s0, s1,	ctor_loop
 	lw	a0, (s0)
 
-	/* Set argc, argv, environ */
-	lw	a0, (sp)	/* argc */
-	lw	a1, 4(sp)	/* argv */
-	lw	a2, 8(sp)	/* envp, not really standard */
+	/* Restore argc, argv, envp, set environ */
+	move	a0, s4
+	move	a1, s5
+	move	a2, s6
 	la	s0, environ
 	sw	a2, (s0)
 
 	j	_C_LABEL(main)
-	move	ra, s2
+	move	ra, s7
 	.set reorder
