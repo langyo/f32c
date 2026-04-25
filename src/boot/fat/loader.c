@@ -146,9 +146,11 @@ main(void)
 	char **argv = NULL;
 	char **envp = NULL;
 
-	if (f32c_eip->cookie == F32C_EXECINFO_COOKIE) {
-		/* XXX todo: sanity check f32c_eip, csum */
-		argc = f32c_eip->argc;
+	if (f32c_eip->cookie == F32C_EXECINFO_COOKIE &&
+	    f32c_eip->tries == 1 && (argc = f32c_eip->argc) > 0 &&
+	    f32c_eip->argv != NULL && f32c_eip->envp != NULL &&
+	    f32c_eip->envp == &f32c_eip->argv[argc]) {
+		/* XXX todo: check f32c_eip->csum */
 
 		/* Allocate space for argv / envp / strings at local stack */
 		argv = alloca(f32c_eip->size);
