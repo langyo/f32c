@@ -1114,6 +1114,27 @@ date_h(int argc, char **argv)
 
 
 static void
+exec_h(int argc, char **argv)
+{
+	int i;
+	char *path;
+
+	if (argc < 2) {
+		printf("Invalid arguments\n");
+		return;
+	}
+
+	path = argv[1];
+	for (i = 2; i < argc; i++)
+		argv[i - 2] = argv[i];
+	argv[argc - 2] = NULL;
+
+	if (execve(path, argv, NULL) < 0)
+		perror("execve() failed");
+}
+
+
+static void
 exit_h(int argc __unused, char **argv __unused)
 {
 
@@ -1485,6 +1506,7 @@ const struct cmdswitch {
 	CMDSW_ENTRY("del",	rm_h),
 	CMDSW_ENTRY("df",	df_h),
 	CMDSW_ENTRY("dir",	ls_h),
+	CMDSW_ENTRY("exec",	exec_h),
 	CMDSW_ENTRY("exit",	exit_h),
 #ifdef F32C
 	CMDSW_ENTRY("flash",	flash_h),
