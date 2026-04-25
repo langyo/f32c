@@ -139,21 +139,21 @@ load_bin(const char *fname, int verbose)
 void
 main(void)
 {
-	int i;
 	struct f32c_execinfo *f32c_eip = (void *) F32C_EXECINFO_ADDR;
-	void *sp, *loadaddr = NULL;
-	int argc = 0;
+	void *loadaddr = NULL;
+	void *sp = (void *) 0x84000000;
 	char **argv = NULL;
 	char **envp = NULL;
+	int argc = 0;
+	int i;
 
-	if (f32c_eip->cookie == F32C_EXECINFO_COOKIE &&
-	    f32c_eip->tries == 1 && (argc = f32c_eip->argc) > 0 &&
-	    f32c_eip->argv != NULL && f32c_eip->envp != NULL &&
-	    f32c_eip->envp == &f32c_eip->argv[argc]) {
+	if (f32c_eip->cookie == F32C_EXECINFO_COOKIE && f32c_eip->tries == 1
+	    && (argc = f32c_eip->argc) > 0 && f32c_eip->argv != NULL
+	    && f32c_eip->envp == &f32c_eip->argv[argc]) {
 		/* XXX todo: check f32c_eip->csum */
 
 		/* Allocate space for argv / envp / strings at local stack */
-		argv = alloca(f32c_eip->size);
+		sp = argv = alloca(f32c_eip->size);
 		envp = &argv[argc];
 
 		/* Safely move argv / envp / strings to local stack */
@@ -207,22 +207,19 @@ main(void)
 	OUTW(IO_PCM_FREQ, 0);	/* stop PCM DMA */
 	OUTW(IO_PCM_VOLUME, 0);	/* mute PCM DAC output */
 
-	if (argv != NULL)
-		sp = argv;
-	else
-		sp = (void *) 0x84000000;
-
 	__asm __volatile__(
 #ifdef __mips__
 		"move $4, %0;"	/* a0 */
 		"move $5, %1;"	/* a1 */
 		"move $6, %2;"	/* a2 */
 		"move $29, %3;"	/* sp */
+		"move $31, $0;"	/* ra */
 #else /* riscv */
 		"move a0, %0;"
 		"move a1, %1;"
 		"move a2, %2;"
 		"move sp, %3;"
+		"move ra, zero;"
 #endif
 		"jr %4;"
 		:
