@@ -362,9 +362,12 @@ boot:
 		"addiu $2, $2, -4;"
 		"cache_skip:;"
 
-		"move $31, $0;"		/* return to ROM loader when done */
-		"jr $1;"
 		"or $29, $29, $5;"	/* set the stack pointer */
+		"move $4, $0;"		/* clear a0 / argc */
+		"move $5, $0;"		/* clear a1 / argv */
+		"move $6, $0;"		/* clear a2 / envp */
+		"jr $1;"
+		"move $31, $0;"		/* return to ROM loader when done */
 		".set at;"
 		".set reorder;"
 		:
@@ -377,7 +380,10 @@ boot:
 		"lui s1, 0x10000;"	/* top of the initial stack */
 		"and sp, %0, s0;"	/* clr low bits of the stack */
 		"or sp, sp, s1;"	/* set stack */
-		"mv ra, zero;"
+		"mv a0, zero;"		/* clear argc */
+		"mv a1, zero;"		/* clear argv */
+		"mv a2, zero;"		/* clear envp */
+		"mv ra, zero;"		/* return to ROM loader when done */
 		"jr %0;"
 		:
 		: "r" (cp)
