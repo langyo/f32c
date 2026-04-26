@@ -1131,7 +1131,7 @@ exec_h(int argc, char **argv)
 		argv[i - 2] = argv[i];
 	argv[argc - 2] = NULL;
 
-	if (execve(path, argv, NULL) < 0)
+	if (execve(path, argv, environ) < 0)
 		perror("execve() failed");
 }
 
