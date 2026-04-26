@@ -93,11 +93,13 @@ ifeq ($(LIB),c)
 
  CFILES += stdio/gets.c stdio/perror.c stdio/printf.c stdio/sprintf.c
 
- CFILES += stdlib/abs.c stdlib/atoi.c stdlib/labs.c stdlib/malloc.c \
+ CFILES += stdlib/abs.c stdlib/atoi.c stdlib/getenv.c \
+	stdlib/labs.c stdlib/malloc.c \
 	stdlib/qsort.c stdlib/random.c stdlib/strtol.c stdlib/strtoll.c \
 	stdlib/strtoull.c
 
  CFILES += string/memcmp.c string/memcpy.c string/memmove.c string/memset.c \
+	string/stpncpy.c string/strdup.c \
 	string/strcasecmp.c string/strcat.c string/strcmp.c string/strncmp.c \
 	string/strcpy.c string/strerror.c string/strlcat.c string/strlcpy.c \
 	string/strncpy.c string/strncat.c string/strnlen.c string/strstr.c \

@@ -104,5 +104,7 @@ int atexit(void (*)(void));
 int	clearenv(void);
 int	putenv(char *);
 char	*getenv(const char *);
+int	setenv(const char *, const char *, int);
+int	unsetenv(const char *);
 
 #endif /* !_STDLIB_H_ */

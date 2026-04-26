@@ -37,6 +37,7 @@ typedef int errno_t;
 #endif
 
 char *strcat(char * __restrict, const char * __restrict);
+char *strdup(const char *);
 char *strstr(const char *, const char *) __pure;
 char *strtok(char * __restrict, const char * __restrict);
 char *strtok_r(char *, const char *, char **);
@@ -54,6 +55,7 @@ int memcmp(const void *, const void *, size_t) __pure;
 
 #define	memcpy(dst, src, len) _memcpy((dst), (src), (len))
 #define	strncpy(dst, src, len) __builtin_strncpy((dst), (src), (len))
+#define	stpncpy(dst, src, len) __builtin_stpncpy((dst), (src), (len))
 #define	strrchr(buf, ch) __builtin_strrchr((buf), (ch))
 
 int strcmp(const char * __restrict, const char * __restrict);
