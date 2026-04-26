@@ -38,6 +38,8 @@ static uint32_t	curhist;
 static int interrupt;
 static int do_exit;
 
+extern char **environ;
+
 typedef	void	cmdhandler_t(int, char **);
 
 extern FILE debf;
@@ -1269,6 +1271,30 @@ done:
 
 
 static void
+setenv_h(int argc, char **argv)
+{
+	int i;
+	char *val = NULL;
+
+	if (argc == 1) {
+		for (i = 0; environ[i] != NULL; i++)
+			printf("%s\n", environ[i]);
+		return;
+	}
+
+	if (argc > 3) {
+		printf("Too many arguments.");
+		return;
+	}
+
+	if (argc == 3)
+		val = argv[2];
+
+	setenv(argv[1], val, 1);
+}
+
+
+static void
 srec_h(int argc, char **argv)
 {
 
@@ -1528,6 +1554,7 @@ const struct cmdswitch {
 	CMDSW_ENTRY("rename",	rename_h),
 	CMDSW_ENTRY("rm",	rm_h),
 	CMDSW_ENTRY("rmdir",	rmdir_h),
+	CMDSW_ENTRY("setenv",	setenv_h),
 	CMDSW_ENTRY("srec",	srec_h),
 	CMDSW_ENTRY("?",	help_h),
 	{ 0, 0 }
