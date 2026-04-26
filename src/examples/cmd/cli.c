@@ -547,6 +547,7 @@ cd_h(int argc, char **argv)
 		return;
 	}
 	getcwd(path, 128);
+	setenv("PWD", path, 1);
 	printf("%s\n", path);
 }
 
