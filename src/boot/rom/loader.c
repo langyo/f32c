@@ -376,15 +376,16 @@ boot:
 #else /* riscv */
 	__asm __volatile__(
 		"fence.i;"		/* flush I-cache */
+		"move s2, %0;"		/* pull cp into s2 */
 		"lui s0, 0x80000;"	/* stack mask */
 		"lui s1, 0x10000;"	/* top of the initial stack */
-		"and sp, %0, s0;"	/* clr low bits of the stack */
+		"and sp, s2, s0;"	/* clr low bits of the stack */
 		"or sp, sp, s1;"	/* set stack */
 		"mv a0, zero;"		/* clear argc */
 		"mv a1, zero;"		/* clear argv */
 		"mv a2, zero;"		/* clear envp */
 		"mv ra, zero;"		/* return to ROM loader when done */
-		"jr %0;"
+		"jr s2;"
 		:
 		: "r" (cp)
 	);
