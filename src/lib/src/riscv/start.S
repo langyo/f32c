@@ -23,7 +23,6 @@
  * SUCH DAMAGE.
  */
 
-
 /*
  * Set small data index register, set curthread, clear BSS, and jump
  * into main().
@@ -56,6 +55,13 @@ _start:
 	addi	s1, s1, %lo(_end) /* word aligned */
 	la	gp, __global_pointer$
 	la	tp, thread0
+
+	/* Save argc, argv, envp, ra */
+	move	s4, a0
+	move	s5, a1
+	move	s6, a2
+	move	s7, ra
+
 	.option relax
 	j	bss_bzero_enter
 
@@ -80,9 +86,9 @@ ctor_loop_enter:
 	bne	s0, s1,	ctor_loop
 
 	/* Set argc, argv, environ */
-	lw	a0, (sp)	/* argc */
-	lw	a1, 4(sp)	/* argv */
-	lw	a2, 8(sp)	/* envp, not really standard */
+	move	a0, s4
+	move	a1, s5
+	move	a2, s6
 	la	s0, environ
 	sw	a2, (s0)
 
