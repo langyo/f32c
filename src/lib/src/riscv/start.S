@@ -53,8 +53,20 @@ _start:
 	addi	s0, s0, %lo(__bss_start) /* NOT word aligned */
 	lui	s1, %hi(_end)	/* End of BSS section, absolute */
 	addi	s1, s1, %lo(_end) /* word aligned */
+	.option relax
+
+	/* Set global and thread pointers */
 	la	gp, __global_pointer$
 	la	tp, thread0
+
+	/* If no envp (a2) was provided, allocate an empyty environ on stack */
+	la	s4, environ
+	bnez	a2, environ_ok
+	addi	sp, sp, -4
+	sw	zero, (sp)
+	move	a2, sp
+environ_ok:
+	sw	a2, (s4)
 
 	/* Save argc, argv, envp, ra */
 	move	s4, a0
@@ -62,10 +74,8 @@ _start:
 	move	s6, a2
 	move	s7, ra
 
-	.option relax
-	j	bss_bzero_enter
-
 	/* The loader doesn't bzero the BSS, so we must do it here. */
+	j	bss_bzero_enter
 bss_bzero_loop:
 	sb	zero, (s0)
 	addi	s0, s0, 1
@@ -75,9 +85,7 @@ bss_bzero_enter:
 	/* Call initializers / constructors */
 	la	s0, __init_array_start
 	la	s1, __init_array_end
-	move	s2, ra
 	j	ctor_loop_enter
-
 ctor_loop:
 	lw	a0, (s0)
 	addi	s0, s0, 4
@@ -85,12 +93,11 @@ ctor_loop:
 ctor_loop_enter:
 	bne	s0, s1,	ctor_loop
 
-	/* Set argc, argv, environ */
+	/* Restore argc, argv, envp */
 	move	a0, s4
 	move	a1, s5
 	move	a2, s6
-	la	s0, environ
-	sw	a2, (s0)
 
-	move	ra, s2
+	/* Done, jump into main */
+	move	ra, s7
 	j	main

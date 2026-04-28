@@ -51,11 +51,24 @@ environ:
 
 _start:
 	/* Magic block required by the bootloader, otherwise harmless */
+	.set noreorder
 	la	s0, _start	/* Executable code base address */
 	la	s1, _end	/* End of BSS section, word aligned */
 	la	s0, __bss_start	/* Start of BSS section, NOT word aligned */
+	.set reorder
+
+	/* Set global and thread pointers */
 	la	gp, _gp	
 	la	k1, thread0
+
+	/* If no envp (a2) was provided, allocate an empyty environ on stack */
+	la	s4, environ
+	bnez	a2, environ_ok
+	addi	sp, sp, -4
+	sw	zero, (sp)
+	move	a2, sp
+environ_ok:
+	sw	a2, (s4)
 
 	/* Save argc, argv, envp, ra */
 	move	s4, a0
@@ -64,19 +77,18 @@ _start:
 	move	s7, ra
 
 	/* The loader doesn't bzero the BSS, so we must do it here. */
+	j	bss_bzero_enter
 	.set noreorder
-bss_bzero:
+bss_bzero_loop:
 	sb	zero, (s0)
-	bne	s0, s1, bss_bzero
+bss_bzero_enter:
+	bne	s0, s1, bss_bzero_loop
 	addiu	s0, s0, 1
-	.set reorder
 
 	/* Call initializers / constructors */
 	la	s0, __init_array_start
-	la	s1, _fdata
 	b	ctor_loop_enter
-
-	.set noreorder
+	la	s1, _fdata
 ctor_loop:
 	jalr	a0
 	addiu	s0, s0, 4
@@ -84,12 +96,10 @@ ctor_loop_enter:
 	bne	s0, s1,	ctor_loop
 	lw	a0, (s0)
 
-	/* Restore argc, argv, envp, set environ */
+	/* Restore argc, argv, envp */
 	move	a0, s4
 	move	a1, s5
 	move	a2, s6
-	la	s0, environ
-	sw	a2, (s0)
 
 	j	_C_LABEL(main)
 	move	ra, s7
