@@ -59,7 +59,7 @@ _start:
 	la	gp, __global_pointer$
 	la	tp, thread0
 
-	/* If no envp (a2) was provided, allocate an empyty environ on stack */
+	/* If no envp (a2) was provided, allocate an empty environ on stack */
 	la	s4, environ
 	bnez	a2, environ_ok
 	addi	sp, sp, -4

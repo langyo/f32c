@@ -61,7 +61,7 @@ _start:
 	la	gp, _gp	
 	la	k1, thread0
 
-	/* If no envp (a2) was provided, allocate an empyty environ on stack */
+	/* If no envp (a2) was provided, allocate an empty environ on stack */
 	la	s4, environ
 	bnez	a2, environ_ok
 	addi	sp, sp, -4
