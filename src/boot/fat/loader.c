@@ -209,19 +209,20 @@ main(void)
 
 	__asm __volatile__(
 #ifdef __mips__
+		"move $1, %4;"	/* at */
 		"move $4, %0;"	/* a0 */
 		"move $5, %1;"	/* a1 */
 		"move $6, %2;"	/* a2 */
 		"move $29, %3;"	/* sp */
-		"move $31, $0;"	/* ra */
+		"jr $1;"
 #else /* riscv */
+		"move t0, %4;"
 		"move a0, %0;"
 		"move a1, %1;"
 		"move a2, %2;"
 		"move sp, %3;"
-		"move ra, zero;"
+		"jr t0;"
 #endif
-		"jr %4;"
 		:
 		: "r" (argc), "r" (argv), "r" (envp), "r" (sp), "r" (loadaddr)
 	);
