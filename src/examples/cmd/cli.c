@@ -1278,7 +1278,7 @@ setenv_h(int argc, char **argv)
 	char *val = NULL;
 
 	if (argc == 1) {
-		for (i = 0; environ[i] != NULL; i++)
+		for (i = 0; environ != NULL && environ[i] != NULL; i++)
 			printf("%s\n", environ[i]);
 		return;
 	}
