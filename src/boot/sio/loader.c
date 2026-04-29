@@ -56,7 +56,7 @@ extern __dead2 void binboot(void);
 
 
 #ifdef ROM_LOADER
-void
+void *
 sio_boot(void)
 #else
 __dead2 void
@@ -131,7 +131,7 @@ loop:
 		else {
 #ifdef ROM_LOADER
 			if (c == -1) /* Initiate binary load sequence? */
-				return;
+				return (NULL);
 #endif
 #ifdef BIN_LOADER
 			if (c == -1) /* Initiate binary load sequence? */
@@ -161,6 +161,9 @@ loop:
 	/* Address width */
 	if (pos == 1) {
 		if (val >= 7 && val <= 9) {
+#ifdef ROM_LOADER
+			return (base_addr);
+#else
 #ifdef __mips__
 			__asm __volatile__(
 			".set noreorder;"
@@ -176,6 +179,9 @@ loop:
 			"addiu $2, $2, -4;"
 			"cache_skip:;"
 
+			"move $4, $0;"		/* clear a0 / argc */
+			"move $5, $0;"		/* clear a1 / argv */
+			"move $6, $0;"		/* clear a2 / envp */
 			"move $31, $0;"		/* ra <- zero */
 			"jr %0;"
 			"addu $29, $29, $5;"	/* set stack */
@@ -190,11 +196,15 @@ loop:
 			"lui s1, 0x10000;"	/* top of the initial stack */
 			"and sp, %0, s0;"	/* clr low bits of the stack */
 			"or sp, sp, s1;"	/* set stack */
+			"mv a0, zero;"		/* clear argc */
+			"mv a1, zero;"		/* clear argv */
+			"mv a2, zero;"		/* clear envp */
 			"mv ra, zero;"	
 			"jr %0;"
 			: 
 			: "r" (base_addr)
 			);
+#endif
 #endif
 		}
 		if (val <= 3)

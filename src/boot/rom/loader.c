@@ -29,7 +29,7 @@
 #include <dev/spi.h>
 
 
-void sio_boot(void);
+void *sio_boot(void);
 
 #define	FLASH_ADDR_INC	0x00010000
 #define	FLASH_ADDR_LIM	0x00800000
@@ -294,8 +294,9 @@ main(void)
 
 	if (addr == FLASH_ADDR_LIM) {
 		puts("Boot sector not found.\n");
-		sio_boot();
-		cp = sio_load_binary();
+		cp = sio_boot();
+		if (cp == NULL)
+			cp = sio_load_binary();
 		goto boot;
 	}
 
@@ -337,8 +338,9 @@ main(void)
 
 	if (i > 0 || f32c_eip->cookie == F32C_EXECINFO_NOBOOT) {
 		f32c_eip->cookie = 0;
-		sio_boot();
-		cp = sio_load_binary();
+		cp = sio_boot();
+		if (cp == NULL)
+			cp = sio_load_binary();
 	}
 	
 boot:
