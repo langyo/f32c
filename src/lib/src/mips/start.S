@@ -70,11 +70,10 @@ _start:
 environ_ok:
 	sw	a2, (s4)
 
-	/* Save argc, argv, envp, ra */
+	/* Save argc, argv, envp */
 	move	s4, a0
 	move	s5, a1
 	move	s6, a2
-	move	s7, ra
 
 	/* The loader doesn't bzero the BSS, so we must do it here. */
 	j	bss_bzero_enter
@@ -87,8 +86,9 @@ bss_bzero_enter:
 
 	/* Call initializers / constructors */
 	la	s0, __init_array_start
-	b	ctor_loop_enter
 	la	s1, _fdata
+	b	ctor_loop_enter
+	move	s7, ra
 ctor_loop:
 	jalr	a0
 	addiu	s0, s0, 4
