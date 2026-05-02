@@ -47,7 +47,7 @@ elfinfo(int fd, uint32_t *entry, uint32_t *tsiz, uint32_t *dsiz)
 	for (i = 0; i < ehdr.e_shnum; i++) {
 		if (read(fd, &shdr, sizeof(shdr)) != sizeof(shdr))
 			return (-1);
-		
+
 		/* Round up allocation to word-aligned size */
 		len = (shdr.sh_size + 3) & ~3;
 		if ((shdr.sh_flags & SHF_ALLOC) == 0)
