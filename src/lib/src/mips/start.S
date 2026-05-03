@@ -51,11 +51,9 @@ environ:
 
 _start:
 	/* Magic block required by the bootloader, otherwise harmless */
-	.set noreorder
 	la	s0, _start	/* Executable code base address */
 	la	s1, _end	/* End of BSS section, word aligned */
 	la	s0, __bss_start	/* Start of BSS section, NOT word aligned */
-	.set reorder
 
 	/* Set global and thread pointers */
 	la	gp, _gp	
@@ -64,7 +62,8 @@ _start:
 	/* If no envp (a2) was provided, allocate an empty environ on stack */
 	la	s4, environ
 	bnez	a2, environ_ok
-	addiu	sp, sp, -4
+	addiu	sp, sp, -8	/* Keep the stack pointer 64-bit aligned */
+
 	sw	zero, (sp)
 	move	a2, sp
 environ_ok:

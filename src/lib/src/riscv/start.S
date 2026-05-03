@@ -62,7 +62,7 @@ _start:
 	/* If no envp (a2) was provided, allocate an empty environ on stack */
 	la	s4, environ
 	bnez	a2, environ_ok
-	addi	sp, sp, -4
+	addi	sp, sp, -8	/* Keep the stack pointer 64-bit aligned */
 	sw	zero, (sp)
 	move	a2, sp
 environ_ok:
