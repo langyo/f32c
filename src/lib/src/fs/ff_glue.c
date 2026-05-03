@@ -420,6 +420,7 @@ stat(const char *path, struct stat *sb)
 	int res;
 	struct tm tm;
 
+	check_automount();
 	res = f_stat(path, &fno);
 	if (res)
 		return (res);
@@ -457,6 +458,7 @@ getfsstat(struct statfs *buf, long bufsize, int mode)
 	FATFS *fs;
 	DWORD free_clus, tot_sec, free_sec;
 
+	check_automount();
 	for (i = 0, mounts = 0; i < FF_VOLUMES; i++) {
 		if (ff_mounts[i] == NULL)
 			continue;
