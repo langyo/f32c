@@ -214,6 +214,7 @@ main(void)
 		"move $5, %1;"	/* a1 */
 		"move $6, %2;"	/* a2 */
 		"move $29, %3;"	/* sp */
+		"move $31, $0;" /* ra */
 		"jr $1;"
 #else /* riscv */
 		"move t0, %4;"
@@ -221,6 +222,7 @@ main(void)
 		"move a1, %1;"
 		"move a2, %2;"
 		"move sp, %3;"
+		"move ra, zero;"
 		"jr t0;"
 #endif
 		:
