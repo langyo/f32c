@@ -83,11 +83,12 @@ ctor_loop_enter:
 	bne	s0, s1,	ctor_loop
 	lw	a0, (s0)
 
-	/* Restore argc, argv, envp */
+	/* Restore argc, argv, envp, ra */
 	move	a0, s4
 	move	a1, s5
 	move	a2, s6
-
-	j	_C_LABEL(main)
 	move	ra, s7
+
+	j	main
+	addiu	sp, sp, -16 /* Guard space where main() may store a0, a1, a2 */
 	.set reorder
