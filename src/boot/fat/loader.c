@@ -209,6 +209,7 @@ main(void)
 #endif
 
 	/* Turn off video framebuffer and PCM audio DMA */
+	OUTW(IO_LED, 0);	/* LEDs off */
 	OUTW(IO_FB, 3);		/* framebuffer off */
 	OUTW(IO_PCM_FREQ, 0);	/* stop PCM DMA */
 	OUTW(IO_PCM_VOLUME, 0);	/* mute PCM DAC output */
