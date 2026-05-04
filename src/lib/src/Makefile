@@ -80,7 +80,8 @@ ifeq ($(LIB),c)
 
  include builtins/Makefile.inc
 
- CFILES += gen/mul.c gen/assert.c gen/isatty.c gen/termios.c
+ CFILES += gen/div.c gen/div64.c gen/mul.c \
+	gen/assert.c gen/isatty.c gen/termios.c
 
  CFILES += dev/sio.c dev/spi.c
 
