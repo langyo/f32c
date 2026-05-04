@@ -164,6 +164,10 @@ main(void)
 			argv[i] += (argv - f32c_eip->argv) * sizeof(char *);
 
 		loadaddr = load_bin(argv[0], 0);
+		if (loadaddr == NULL) {
+			printf("%s: load failed\n", argv[0]);
+			return;
+		}
 	} else {
 		printf("f32c FAT bootloader v 0.6 "
 #ifdef __mips__
