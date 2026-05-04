@@ -35,7 +35,7 @@
 #include <string.h>
 #include <unistd.h>
 
-extern char **environ;
+char **environ;
 
 static const char CorruptEnvFindMsg[] = "environment corrupt; unable to find ";
 static const char CorruptEnvValueMsg[] =

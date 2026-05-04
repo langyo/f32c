@@ -39,12 +39,6 @@
  * 3) invalidated caches
  */
 
-	.section .data
-	.globl environ
-	.type environ,@object
-environ:
-	.word 0
-
 	.section .init
 	.globl _start
 	.type _start,@function
@@ -59,16 +53,6 @@ _start:
 	la	gp, _gp	
 	la	k1, thread0
 
-	/* If no envp (a2) was provided, allocate an empty environ on stack */
-	la	s4, environ
-	bnez	a2, environ_ok
-	addiu	sp, sp, -8	/* Keep the stack pointer 64-bit aligned */
-
-	sw	zero, (sp)
-	move	a2, sp
-environ_ok:
-	sw	a2, (s4)
-
 	/* Save argc, argv, envp */
 	move	s4, a0
 	move	s5, a1
@@ -82,6 +66,10 @@ bss_bzero_loop:
 bss_bzero_enter:
 	bne	s0, s1, bss_bzero_loop
 	addiu	s0, s0, 1
+
+	/* Set environ from a2 (envp) */
+	la	s0, environ
+	sw	a2, (s0)
 
 	/* Call initializers / constructors */
 	la	s0, __init_array_start
