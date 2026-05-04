@@ -90,10 +90,6 @@ static int envVarsSize = 0;
 static int envVarsTotal = 0;
 
 
-/* Deinitialization of new environment. */
-static void __attribute__ ((destructor)) __clean_env_destructor(void);
-
-
 /*
  * A simple version of warnx() to avoid the bloat of including stdio in static
  * binaries.
@@ -399,13 +395,15 @@ Failure:
 /*
  * Destructor function with default argument to __clean_env().
  */
-static void
+#ifdef XXX_MZ_NOTYET
+static void __attribute__ ((destructor))
 __clean_env_destructor(void)
 {
 	__clean_env(true);
 
 	return;
 }
+#endif
 
 
 /*
