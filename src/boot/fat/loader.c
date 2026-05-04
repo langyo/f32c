@@ -34,6 +34,8 @@
 #include <sys/elf.h>
 #include <sys/exec.h>
 
+extern char **environ;
+
 static const char *bootfiles[] = {
 	"/boot.bin",
 	"/boot/cmd.bin",
@@ -154,7 +156,7 @@ main(void)
 
 		/* Allocate space for argv / envp / strings at local stack */
 		sp = argv = alloca(f32c_eip->size);
-		envp = &argv[argc];
+		environ = envp = &argv[argc];
 
 		/* Safely move argv / envp / strings to local stack */
 		memmove(argv, f32c_eip->argv, f32c_eip->size);
