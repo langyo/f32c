@@ -107,6 +107,7 @@ static void
 check_automount(void)
 {
 	int i;
+	char *path;
 
 	if (ff_mounted)
 		return;
@@ -140,6 +141,10 @@ check_automount(void)
 		f_mount(ff_mounts[i], disk_i[i].d_mnton, 0);
 	}
 	ff_mounted = 1;
+
+	path = getenv("PWD");
+	if (path != NULL)
+		chdir(path);
 }
 
 
