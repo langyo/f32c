@@ -147,7 +147,10 @@ main(void)
 	char **argv = NULL;
 	char **envp = NULL;
 	int argc = 0;
-	int i;
+	int len, i;
+	FILE *fp;
+	char *line = NULL;
+	size_t linecap;
 
 	if (f32c_eip->cookie == F32C_EXECINFO_COOKIE && f32c_eip->tries == 1
 	    && (argc = f32c_eip->argc) > 0 && f32c_eip->argv != NULL
@@ -182,6 +185,21 @@ main(void)
 		    "(riscv)"
 #endif
 		    " (built " __DATE__ ")\n");
+
+		/* Parse and set the boot environment */
+		for (fp = fopen("/boot/loader.conf", "r"); fp != NULL;) {
+			len = getline(&line, &linecap, fp);
+			if (len < 0) {
+				free(line);
+				fclose(fp);
+				break;
+			}
+			line[len] = 0;
+			if (putenv(line) == 0)
+				line = NULL; /* consumed by putenv() */
+			else
+				printf("putenv(%s) failed\n", line);
+		}
 	}
 
 	for (i = 0; loadaddr == NULL && bootfiles[i] != NULL; i++)
