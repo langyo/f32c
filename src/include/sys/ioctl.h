@@ -15,7 +15,8 @@
 #define	TIOCSETA		IOCTL_TIOC(0x02)
 #define	TIOCSETAF		IOCTL_TIOC(0x03)
 #define	TIOCSETAW		IOCTL_TIOC(0x04)
-#define	TIOCSWINSZ		IOCTL_TIOC(0x05)
+#define	TIOCGWINSZ		IOCTL_TIOC(0x05)
+#define	TIOCSWINSZ		IOCTL_TIOC(0x06)
 
 int termios_ioctl(struct file *, int, long);
 
