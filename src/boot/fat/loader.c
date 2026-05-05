@@ -125,7 +125,7 @@ load_bin(const char *fname, int verbose)
 	} while (i > 0 && cp < bss);
 	close(fd);
 	
-	if (cp != bss) {
+	if (bss < cp || bss > cp + 4) {
 		printf("corrupt text file, aborting\n");
 		return (NULL);
 	}
