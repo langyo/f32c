@@ -23,10 +23,12 @@
  * SUCH DAMAGE.
  */
 
+#include <ctype.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 #include <dev/io.h>
@@ -131,10 +133,41 @@ load_bin(const char *fname, int verbose)
 	}
 
 	if (verbose)
-		printf("OK\nLoaded text & data at %p; bss at %p len %p\n\n",
+		printf("OK\nLoaded text & data at %p; bss at %p len %p\n",
 		    start, bss, (void *) (end - bss));
 
 	return (start);
+}
+
+
+static void
+loadenv(const char *path)
+{
+	FILE *fp;
+	int len;
+	char *line = NULL;
+	size_t linecap;
+
+	fp = fopen(path, "r");
+	clearenv();
+	while (fp != NULL) {
+		len = getline(&line, &linecap, fp);
+		if (len < 0) {
+			free(line);
+			fclose(fp);
+			return;
+		}
+		line[len] = 0;
+
+		/* Skip comments and blank lines */
+		if (!isalpha(line[0]))
+			continue;
+
+		if (putenv(line) == 0)
+			line = NULL; /* consumed by putenv() */
+		else
+			printf("putenv(%s) failed\n", line);
+	}
 }
 
 
@@ -146,22 +179,24 @@ main(void)
 	void *sp = (void *) 0x84000000;
 	char **argv = NULL;
 	char **envp = NULL;
+	char *cp;
 	int argc = 0;
-	int len, i;
-	FILE *fp;
-	char *line = NULL;
-	size_t linecap;
+	int i, c;
+	size_t len;
+	struct timespec tv0, tv1;
 
+	/* If f32c trampoline requested, load the binary, set the env, boot */
 	if (f32c_eip->cookie == F32C_EXECINFO_COOKIE && f32c_eip->tries == 1
 	    && (argc = f32c_eip->argc) > 0 && f32c_eip->argv != NULL
 	    && f32c_eip->envp == &f32c_eip->argv[argc]) {
 		/* XXX todo: check f32c_eip->csum */
+		f32c_eip->cookie = 0xdeadc0de;
 
 		/* Allocate space for argv / envp / strings at local stack */
 		sp = argv = alloca(f32c_eip->size);
 		environ = envp = &argv[argc];
 
-		/* Safely move argv / envp / strings to local stack */
+		/* Safely move argv / envp / strings to the local stack */
 		memmove(argv, f32c_eip->argv, f32c_eip->size);
 
 		/* Adjust argv / envp pointer addresses */
@@ -169,48 +204,85 @@ main(void)
 			argv[i] += (argv - f32c_eip->argv) * sizeof(char *);
 
 		loadaddr = load_bin(argv[0], 0);
-		if (loadaddr == NULL) {
-			printf("%s: load failed\n", argv[0]);
-			return;
-		}
-	} else {
-		printf("f32c FAT bootloader v 0.6 "
-#ifdef __mips__
-#if _BYTE_ORDER == _BIG_ENDIAN
-		    "(mips/be)"
-#else
-		    "(mips/le)"
-#endif
-#else /* !__mips__ */
-		    "(riscv)"
-#endif
-		    " (built " __DATE__ ")\n");
-
-		/* Parse and set the boot environment */
-		for (fp = fopen("/boot/loader.conf", "r"); fp != NULL;) {
-			len = getline(&line, &linecap, fp);
-			if (len < 0) {
-				free(line);
-				fclose(fp);
-				break;
-			}
-			line[len] = 0;
-			if (putenv(line) == 0)
-				line = NULL; /* consumed by putenv() */
-			else
-				printf("putenv(%s) failed\n", line);
-		}
-	}
-
-	for (i = 0; loadaddr == NULL && bootfiles[i] != NULL; i++)
-		loadaddr = load_bin(bootfiles[i], 1);
-
-	if (loadaddr == NULL) {
-		f32c_eip->cookie = F32C_EXECINFO_NOBOOT;
-		printf("Exiting\n");
+		if (loadaddr != NULL)
+			goto boot;
+		printf("%s: load failed\n", argv[0]);
 		return;
 	}
 
+	/* Parse and set the boot environment */
+	loadenv("/boot/loader.conf");
+
+	/* Adjust console baud rate */
+	cp = getenv("bauds");
+	if (cp != NULL && (i = atoi(cp)) > 0)
+		sio_setbaud(i);
+
+	/* Print out identification message */
+	printf("f32c "
+#ifdef __mips__
+#if _BYTE_ORDER == _BIG_ENDIAN
+	    "(mips/be)"
+#else
+	    "(mips/le)"
+#endif
+#else /* !__mips__ */
+	    "(riscv)"
+#endif
+	    " FAT bootloader v 0.7 (" __DATE__ ")\n");
+
+	/* XXX choose the boot file based on environ - revisit */
+	for (i = 0; loadaddr == NULL && bootfiles[i] != NULL; i++)
+		loadaddr = load_bin(bootfiles[i], 1);
+
+	/* Opportunity to escape to a file chooser prompt */
+	if (loadaddr != NULL && (cp = getenv("autoboot_delay")) != NULL) {
+		clock_gettime(CLOCK_MONOTONIC, &tv0);
+		for (i = atoi(cp); i > 0; i--) {
+			printf("\rBooting in %d s...%c\b", i, "|/-\\"[i & 0x3]);
+			do {
+				c = sio_getchar(0);
+				if (c == 27) {
+					/* ESC = break to prompt */
+					loadaddr = NULL;
+					break;
+				}
+				if (c == 'b') {
+					/* Skip the long wait... */
+					i = 0;
+					break;
+				}
+				clock_gettime(CLOCK_MONOTONIC, &tv1);
+			} while ((tv1.tv_sec == tv0.tv_sec ||
+			    tv1.tv_nsec < tv0.tv_nsec) && loadaddr != NULL);
+			tv0.tv_sec = tv1.tv_sec;
+		}
+		printf(" \n");
+	}
+
+	/* Ditch the boot environment and load the application env */
+	cp = getenv("appenv_file");
+	if (cp != NULL)
+		loadenv(cp);
+
+	while (loadaddr == NULL) {
+		printf("File to boot: ");
+		/* XXX todo: stty echo */
+		i = getline(&cp, &len, stdin);
+		cp[i] = 0;
+		loadaddr = load_bin(cp, 1);
+	}
+
+	if (loadaddr == NULL) {
+		/* XXX currently unreachable, revisit & fix */
+		f32c_eip->cookie = F32C_EXECINFO_NOBOOT;
+		printf("No bootable file(s) found, exiting\n");
+		return;
+	}
+
+	/* XXX todo: alloca()te and populate argv and envp */
+
+boot:
 	/* Invalidate I-cache */
 #ifdef __mips__
 	for (i = 0x80000000; i < 0x80010000; i += 4) {
